@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "categories": [
+    "Indexes",
+    "Mega-cap Tech",
+    "Crypto",
+    "FX & Commodities"
+  ],
+  "symbols": [
+    {
+      "symbol": "AMEX:SPY",
+      "name": "SPDR S&P 500 ETF Trust",
+      "category": "Indexes",
+      "tags": [
+        "etf",
+        "us"
+      ]
+    },
+    {
+      "symbol": "NASDAQ:QQQ",
+      "name": "Invesco QQQ Trust",
+      "category": "Indexes",
+      "tags": [
+        "etf",
+        "growth"
+      ]
+    },
+    {
+      "symbol": "NASDAQ:AAPL",
+      "name": "Apple Inc.",
+      "category": "Mega-cap Tech",
+      "tags": [
+        "tech"
+      ]
+    },
+    {
+      "symbol": "NASDAQ:MSFT",
+      "name": "Microsoft Corporation",
+      "category": "Mega-cap Tech",
+      "tags": [
+        "tech",
+        "ai"
+      ]
+    },
+    {
+      "symbol": "NASDAQ:NVDA",
+      "name": "NVIDIA Corporation",
+      "category": "Mega-cap Tech",
+      "tags": [
+        "semis",
+        "ai"
+      ]
+    },
+    {
+      "symbol": "BINANCE:BTCUSDT",
+      "name": "Bitcoin / TetherUS",
+      "category": "Crypto",
+      "tags": [
+        "crypto"
+      ]
+    },
+    {
+      "symbol": "BINANCE:ETHUSDT",
+      "name": "Ethereum / TetherUS",
+      "category": "Crypto",
+      "tags": [
+        "crypto"
+      ]
+    },
+    {
+      "symbol": "FX:EURUSD",
+      "name": "Euro / U.S. Dollar",
+      "category": "FX & Commodities",
+      "tags": [
+        "fx"
+      ]
+    },
+    {
+      "symbol": "TVC:GOLD",
+      "name": "Gold",
+      "category": "FX & Commodities",
+      "tags": [
+        "commodity"
+      ]
+    }
+  ]
+}

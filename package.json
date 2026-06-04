@@ -1,0 +1,33 @@
+{
+  "name": "tradingview-watchlist-dashboard",
+  "version": "1.0.0",
+  "description": "Self-hosted TradingView chart and watchlist dashboard with categories, tags, quotes, and drag-and-drop ordering.",
+  "private": false,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js && node --check public/dashboard.js",
+    "test": "node tests/smoke.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "keywords": [
+    "tradingview",
+    "watchlist",
+    "stocks",
+    "crypto",
+    "dashboard",
+    "quotes",
+    "self-hosted"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/00anon0X/tradingview-watchlist-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/00anon0X/tradingview-watchlist-dashboard/issues"
+  },
+  "homepage": "https://github.com/00anon0X/tradingview-watchlist-dashboard#readme"
+}

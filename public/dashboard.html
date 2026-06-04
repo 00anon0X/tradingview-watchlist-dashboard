@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Watchlist Dashboard</title>
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+  <header class="dash-topbar">
+    <div>
+      <p class="eyebrow">Self-hosted</p>
+      <h1>Watchlist Dashboard</h1>
+      <p class="muted">Bulk manage tickers, categories, tags, and order.</p>
+    </div>
+    <nav class="top-actions">
+      <span id="saveStatus" class="status">Loading…</span>
+      <button id="refreshBtn" class="ghost-btn" type="button" title="Reload watchlist from server">↻ Refresh</button>
+      <a class="ghost-btn" href="/">Chart</a>
+      <button id="logoutBtn" class="ghost-btn" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <main class="dash-shell">
+    <aside class="left-panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>Categories</h2>
+          <span id="categoryCount" class="pill">0</span>
+        </div>
+        <form id="categoryForm" class="inline-form" autocomplete="off">
+          <input id="newCategoryInput" type="text" placeholder="New category">
+          <button type="submit" class="primary-btn">Add</button>
+        </form>
+        <p class="hint">Drag categories to reorder. Drop tickers on a category to move them.</p>
+        <div id="categoryList" class="category-list"></div>
+      </section>
+    </aside>
+
+    <section class="main-panel">
+      <div class="toolbar card">
+        <div class="toolbar-row">
+          <label class="search-box">
+            <span>Search</span>
+            <input id="searchInput" type="search" placeholder="Symbol, name, tag, category">
+          </label>
+          <label class="search-box small">
+            <span>Category</span>
+            <select id="categoryFilter"><option value="">All</option></select>
+          </label>
+          <label class="search-box small">
+            <span>Move selected</span>
+            <select id="bulkCategorySelect"><option value="">Choose category…</option></select>
+          </label>
+          <button id="bulkMoveBtn" class="mini-btn" type="button">Move</button>
+        </div>
+        <div class="toolbar-row compact">
+          <label class="checkline"><input id="selectAllBox" type="checkbox"> Select visible</label>
+          <input id="bulkTagsInput" type="text" placeholder="Add tags to selected: ai, energy">
+          <button id="bulkAddTagsBtn" class="mini-btn" type="button">Add tags</button>
+          <button id="bulkClearTagsBtn" class="mini-btn" type="button">Clear tags</button>
+          <button id="bulkDeleteBtn" class="danger-btn" type="button">Delete selected</button>
+        </div>
+      </div>
+
+      <section class="card table-card">
+        <div class="card-head sticky-head">
+          <div>
+            <h2>Tickers</h2>
+            <p id="tickerSummary" class="muted">0 tickers</p>
+          </div>
+          <button id="saveBtn" class="primary-btn" type="button">Save now</button>
+        </div>
+        <div id="tickerGroups" class="ticker-groups" aria-live="polite"></div>
+      </section>
+    </section>
+  </main>
+
+  <template id="categoryTemplate">
+    <div class="category-row" draggable="true">
+      <span class="drag-dot">⋮⋮</span>
+      <input class="category-name" type="text" aria-label="Category name">
+      <span class="category-size">0</span>
+      <button class="delete-category" type="button" title="Delete category">×</button>
+    </div>
+  </template>
+
+  <template id="tickerTemplate">
+    <div class="ticker-row" draggable="true">
+      <span class="drag-dot">⋮⋮</span>
+      <input class="row-select" type="checkbox" aria-label="Select ticker">
+      <input class="symbol-field" type="text" aria-label="Symbol">
+      <input class="name-field" type="text" aria-label="Name">
+      <select class="category-field" aria-label="Category"></select>
+      <input class="tags-field" type="text" aria-label="Tags">
+      <button class="delete-ticker" type="button" title="Delete ticker">×</button>
+    </div>
+  </template>
+
+  <script src="/dashboard.js" defer></script>
+</body>
+</html>

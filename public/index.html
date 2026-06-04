@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Self-hosted TradingView chart and watchlist dashboard">
+  <title>Trading Watchlist</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Watchlist controls">
+      <header class="brand brand-with-actions">
+        <div class="brand-main">
+          <div class="logo" aria-hidden="true">TW</div>
+          <div>
+            <p class="eyebrow">Self-hosted</p>
+            <h1>Watchlist</h1>
+          </div>
+        </div>
+        <div class="header-actions" aria-label="Watchlist file actions">
+          <button id="exportBtn" type="button" class="mini-btn">Export</button>
+          <label class="mini-btn file-btn" for="importFile">Import</label>
+          <input id="importFile" type="file" accept="application/json,.json" hidden>
+        </div>
+      </header>
+
+      <section class="watchlist-wrap" aria-labelledby="watchlist-title">
+        <div class="list-heading">
+          <div>
+            <h2 id="watchlist-title">Watchlist</h2>
+            <span id="selectedLabel" class="muted">Select a symbol</span>
+          </div>
+          <span id="countPill" class="pill">0 symbols</span>
+        </div>
+        <div class="filter-grid">
+          <label class="search-box">
+            <span>Search</span>
+            <input id="filterInput" type="search" placeholder="Symbol, tag, category">
+          </label>
+          <label class="search-box">
+            <span>Category</span>
+            <select id="categoryFilter"><option value="">All categories</option></select>
+          </label>
+        </div>
+        <div class="quote-heading" aria-hidden="true"><span>Symbol</span><span>Last</span><span>Chg%</span></div>
+        <div id="watchlist" class="watchlist" role="listbox" aria-label="Saved symbols"></div>
+        <p id="emptyState" class="empty-state" hidden>No matches. Add a symbol or clear the filter.</p>
+      </section>
+
+      <section class="panel add-panel" aria-labelledby="add-symbol-title">
+        <div class="panel-heading">
+          <h2 id="add-symbol-title">Manage watchlist</h2>
+          <button id="resetBtn" type="button" class="danger-text">Reset</button>
+        </div>
+        <form id="symbolForm" class="symbol-form" autocomplete="off">
+          <input id="symbolInput" name="symbol" type="text" placeholder="Symbol e.g. SOLUSDT" required aria-label="Symbol">
+          <input id="categoryInput" name="category" type="text" list="categoryOptions" placeholder="Category e.g. MAIN CRYPTO" aria-label="Category">
+          <datalist id="categoryOptions"></datalist>
+          <input id="tagsInput" name="tags" type="text" placeholder="Tags optional" aria-label="Tags">
+          <button type="submit" class="primary-btn">Add</button>
+        </form>
+        <div id="symbolSuggestions" class="symbol-suggestions" role="listbox" aria-label="Ticker matches" hidden></div>
+        <div class="symbol-edit-tools">
+          <span id="selectedSymbolBadge" class="edit-badge">Select ticker to edit tags</span>
+          <input id="editTagsInput" type="text" placeholder="Tags for selected ticker" aria-label="Tags for selected ticker">
+          <button id="saveTagsBtn" type="button" class="mini-btn">Save tags</button>
+          <button id="removeSelectedBtn" type="button" class="danger-text remove-selected-btn" disabled>Remove</button>
+        </div>
+        <div class="category-tools">
+          <select id="deleteCategorySelect" aria-label="Category to manage"><option value="">Manage category…</option></select>
+          <input id="categoryNameInput" type="text" placeholder="New category name" aria-label="New category name">
+          <button id="createCategoryBtn" type="button" class="mini-btn">Add</button>
+          <button id="renameCategoryBtn" type="button" class="mini-btn">Rename</button>
+          <button id="deleteCategoryBtn" type="button" class="danger-text">Delete</button>
+        </div>
+        <p class="hint">Select a ticker to edit tags. Add/rename/delete categories below. Drag a row onto a category header to move it there.</p>
+      </section>
+    </aside>
+    <div id="splitHandle" class="split-handle" role="separator" aria-orientation="vertical" aria-label="Resize watchlist and chart panes" tabindex="0"></div>
+
+    <main class="chart-area">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">TradingView Advanced Chart</p>
+          <h2 id="chartTitle">Loading…</h2>
+        </div>
+        <div class="status-stack">
+          <label class="timezone-control" title="Chart timezone">
+            <span class="sr-only">Chart timezone</span>
+            <select id="timezoneSelect" aria-label="Chart timezone">
+              <option value="Etc/UTC">UTC</option>
+              <option value="America/New_York">New York</option>
+              <option value="Europe/London">London</option>
+              <option value="Asia/Tokyo">Tokyo</option>
+              <option value="Asia/Hong_Kong">Hong Kong</option>
+            </select>
+          </label>
+          <span id="userEmail" class="status-dot">Google auth</span>
+          <span id="storageStatus" class="status-dot">Server sync</span>
+          <span id="widgetStatus" class="status-dot secondary">Widget loading</span>
+          <a id="tvOpenLink" class="ghost-btn compact-btn tv-open-link" href="https://www.tradingview.com/chart/" target="_blank" rel="noopener" hidden>Open TV</a>
+          <a class="ghost-btn compact-btn" href="/dashboard.html">Dashboard</a>
+          <button id="logoutBtn" type="button" class="ghost-btn compact-btn">Logout</button>
+        </div>
+      </div>
+      <section class="chart-card" aria-label="TradingView chart">
+        <div id="tradingview-chart" class="tradingview-chart"></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="itemTemplate">
+    <div class="watch-item" role="option" draggable="true">
+      <button class="drag-handle symbol-icon" type="button" title="Symbol" aria-label="Drag to reorder">•</button>
+      <button class="watch-main" type="button">
+        <span class="watch-label"><strong class="watch-symbol"></strong><span class="market-status-dot" hidden></span><span class="watch-tags"></span></span>
+        <span class="watch-meta"></span>
+      </button>
+      <span class="watch-quote" aria-label="Latest delayed quote">
+        <span class="quote-last">—</span>
+        <span class="quote-change">—</span>
+        <span class="quote-extended"></span>
+      </span>
+      <span class="watch-actions">
+<button class="remove-btn" type="button" title="Remove symbol" aria-label="Remove symbol">×</button>
+      </span>
+    </div>
+  </template>
+
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script src="/app.js" defer></script>
+</body>
+</html>
