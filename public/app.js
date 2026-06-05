@@ -3,6 +3,10 @@
 
   const DEFAULT_CATEGORY = 'General';
   const QUOTE_REFRESH_MS = 15 * 1000;
+  const QUOTE_REFRESH_HIDDEN_MS = 60 * 1000;
+  const QUOTE_REFRESH_BACKOFF_MS = 30 * 1000;
+  const QUOTE_REFRESH_CLOSED_MS = 45 * 1000;
+  const QUOTE_FLASH_MS = 900;
   const DEFAULT_SYMBOLS = [
     { symbol: 'NASDAQ:AAPL', category: 'General', tags: ['tech', 'mega-cap'] },
     { symbol: 'NASDAQ:MSFT', category: 'General', tags: ['tech', 'ai'] },
@@ -46,6 +50,7 @@
     exportBtn: document.querySelector('#exportBtn'),
     importFile: document.querySelector('#importFile'),
     resetBtn: document.querySelector('#resetBtn'),
+    manageToggleBtn: document.querySelector('#manageToggleBtn'),
     logoutBtn: document.querySelector('#logoutBtn'),
     userEmail: document.querySelector('#userEmail'),
     chart: document.querySelector('#tradingview-chart'),
@@ -67,10 +72,12 @@
     sidebarWidth: Number(window.localStorage.getItem('sidebarWidth') || 430),
     collapsedCategories: new Set(),
     quotes: {},
+    quoteFlashes: {},
     quoteTimer: null,
     symbolSearchTimer: null,
     symbolSearchAbort: null,
     symbolSuggestions: [],
+    managementOpen: window.localStorage.getItem('managementOpen') === '1',
     chartTimezone: window.localStorage.getItem('chartTimezone') || 'Etc/UTC'
   };
 
@@ -151,6 +158,30 @@
   function categoryOrder(items = state.symbols) {
     const itemCats = new Set(items.map((item) => normalizeCategory(item.category)));
     return categories().filter((category) => itemCats.has(category));
+  }
+
+  function displayCategory(category) {
+    return String(category || '').trim()
+      .replace(/[-_]+/g, ' ')
+      .replace(/\bai\b/gi, 'AI')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function applyManagementVisibility() {
+    const panel = document.querySelector('.add-panel');
+    if (!panel) return;
+    panel.classList.toggle('collapsed', !state.managementOpen);
+    if (els.manageToggleBtn) {
+      els.manageToggleBtn.textContent = state.managementOpen ? 'Done' : 'Manage';
+      els.manageToggleBtn.setAttribute('aria-expanded', String(state.managementOpen));
+    }
+  }
+
+  function setManagementOpen(open) {
+    state.managementOpen = Boolean(open);
+    window.localStorage.setItem('managementOpen', state.managementOpen ? '1' : '0');
+    applyManagementVisibility();
+    if (state.managementOpen) els.symbolInput?.focus();
   }
 
   function refreshCategoryControls() {
@@ -335,18 +366,23 @@
     const symbols = state.symbols.map((item) => item.symbol).filter(Boolean);
     if (!symbols.length) {
       state.quotes = {};
+      state.quoteFlashes = {};
       renderList();
       return;
     }
+    let failed = false;
     try {
       const params = new URLSearchParams({ symbols: symbols.join(',') });
       const data = await api(`/api/quotes?${params.toString()}`);
-      state.quotes = data.quotes || {};
+      const nextQuotes = data.quotes || {};
+      recordQuoteFlashes(state.quotes, nextQuotes);
+      state.quotes = nextQuotes;
       renderList();
     } catch (error) {
+      failed = true;
       console.warn('Could not load delayed quotes.', error);
     } finally {
-      if (schedule) state.quoteTimer = window.setTimeout(() => loadQuotes(), QUOTE_REFRESH_MS);
+      if (schedule) scheduleQuoteRefresh({ failed });
     }
   }
 
@@ -369,7 +405,7 @@
     header.title = 'Drag category to reorder';
     header.setAttribute('aria-expanded', String(!state.collapsedCategories.has(category)));
     header.innerHTML = `<span class="category-chevron" aria-hidden="true">${state.collapsedCategories.has(category) ? '›' : '⌄'}</span><span class="category-title"></span><span class="category-count"></span>`;
-    header.querySelector('.category-title').textContent = category.toUpperCase();
+    header.querySelector('.category-title').textContent = displayCategory(category).toUpperCase();
     header.querySelector('.category-count').textContent = String(count);
     header.addEventListener('click', () => {
       if (state.collapsedCategories.has(category)) state.collapsedCategories.delete(category);
@@ -444,6 +480,54 @@
     return state.quotes[normalizeSymbol(symbol)] || null;
   }
 
+  function quoteNumber(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  }
+
+  function quoteFlashClass(symbol, field) {
+    const key = `${normalizeSymbol(symbol)}:${field}`;
+    const flash = state.quoteFlashes[key];
+    if (!flash) return '';
+    if (Date.now() - flash.at > QUOTE_FLASH_MS) {
+      delete state.quoteFlashes[key];
+      return '';
+    }
+    return flash.direction === 'down' ? 'flash-down' : 'flash-up';
+  }
+
+  function recordQuoteFlashes(previousQuotes, nextQuotes) {
+    const now = Date.now();
+    const fields = ['last', 'changePercent'];
+    Object.entries(nextQuotes || {}).forEach(([symbol, nextQuote]) => {
+      const normalized = normalizeSymbol(symbol);
+      const previousQuote = previousQuotes && previousQuotes[normalized];
+      if (!previousQuote) return;
+      fields.forEach((field) => {
+        const previous = quoteNumber(previousQuote[field]);
+        const next = quoteNumber(nextQuote[field]);
+        if (previous === null || next === null || previous === next) return;
+        state.quoteFlashes[`${normalized}:${field}`] = { direction: next > previous ? 'up' : 'down', at: now };
+      });
+    });
+    Object.keys(state.quoteFlashes).forEach((key) => {
+      if (now - state.quoteFlashes[key].at > QUOTE_FLASH_MS) delete state.quoteFlashes[key];
+    });
+  }
+
+  function nextQuoteRefreshDelay({ failed = false } = {}) {
+    if (document.visibilityState === 'hidden') return QUOTE_REFRESH_HIDDEN_MS;
+    if (failed) return QUOTE_REFRESH_BACKOFF_MS;
+    const quoteValues = Object.values(state.quotes || {});
+    if (quoteValues.length && quoteValues.every((quote) => quote.marketState === 'closed')) return QUOTE_REFRESH_CLOSED_MS;
+    return QUOTE_REFRESH_MS;
+  }
+
+  function scheduleQuoteRefresh(options = {}) {
+    if (state.quoteTimer) window.clearTimeout(state.quoteTimer);
+    state.quoteTimer = window.setTimeout(() => loadQuotes(), nextQuoteRefreshDelay(options));
+  }
+
   function marketStatusClass(quote) {
     if (!quote || quote.marketState === 'continuous') return '';
     return quote.marketState === 'open' ? 'open' : 'closed';
@@ -497,11 +581,16 @@
     const metaEl = node.querySelector('.watch-meta');
     metaEl.textContent = meta;
     metaEl.title = meta;
-    node.querySelector('.quote-last').textContent = quote ? formatLast(quote.last) : '—';
+    const lastEl = node.querySelector('.quote-last');
+    lastEl.textContent = quote ? formatLast(quote.last) : '—';
+    lastEl.classList.toggle('flash-up', quoteFlashClass(item.symbol, 'last') === 'flash-up');
+    lastEl.classList.toggle('flash-down', quoteFlashClass(item.symbol, 'last') === 'flash-down');
     const changeEl = node.querySelector('.quote-change');
     changeEl.textContent = quote ? formatChange(change) : '—';
     changeEl.classList.toggle('up', Number.isFinite(change) && change > 0);
     changeEl.classList.toggle('down', Number.isFinite(change) && change < 0);
+    changeEl.classList.toggle('flash-up', quoteFlashClass(item.symbol, 'changePercent') === 'flash-up');
+    changeEl.classList.toggle('flash-down', quoteFlashClass(item.symbol, 'changePercent') === 'flash-down');
     const extendedEl = node.querySelector('.quote-extended');
     const ext = quote && quote.extended ? (quote.extended.pre || quote.extended.post) : null;
     const extLabel = quote && quote.extended && quote.extended.pre ? 'Pre' : 'Post';
@@ -548,10 +637,21 @@
 
   function refreshSelectedEditor() {
     const item = state.symbols.find((entry) => entry.symbol === state.selected);
-    if (els.selectedSymbolBadge) els.selectedSymbolBadge.textContent = item ? shortSymbol(item.symbol, item) : 'Select ticker to edit tags';
+    if (els.selectedSymbolBadge) els.selectedSymbolBadge.textContent = item ? `Selected: ${shortSymbol(item.symbol, item)}` : 'Select ticker to edit tags';
     if (els.editTagsInput && document.activeElement !== els.editTagsInput) els.editTagsInput.value = item ? (item.tags || []).join(', ') : '';
     if (els.saveTagsBtn) els.saveTagsBtn.disabled = !item;
     if (els.removeSelectedBtn) els.removeSelectedBtn.disabled = !item;
+  }
+
+  function scrollSelectedIntoView() {
+    if (!state.selected || !els.watchlist) return;
+    window.requestAnimationFrame(() => {
+      const row = els.watchlist.querySelector(`.watch-item[data-symbol="${CSS.escape(state.selected)}"]`);
+      if (!row) return;
+      const listRect = els.watchlist.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      if (rowRect.top < listRect.top || rowRect.bottom > listRect.bottom) row.scrollIntoView({ block: 'nearest' });
+    });
   }
 
   function renderList() {
@@ -741,11 +841,40 @@
     if (state.selected === symbol) return;
     state.selected = symbol;
     renderList();
+    scrollSelectedIntoView();
     loadChart(symbol);
   }
 
+  function embeddedChartSymbol(symbol) {
+    const aliases = {
+      'ES1!': 'OANDA:SPX500USD',
+      'CME_MINI:ES1!': 'OANDA:SPX500USD',
+      'CME:ES': 'OANDA:SPX500USD',
+      'MES1!': 'OANDA:SPX500USD',
+      'CME_MINI:MES1!': 'OANDA:SPX500USD',
+      'CME:MES': 'OANDA:SPX500USD',
+      'NQ1!': 'OANDA:NAS100USD',
+      'CME_MINI:NQ1!': 'OANDA:NAS100USD',
+      'CME:NQ': 'OANDA:NAS100USD',
+      'MNQ1!': 'OANDA:NAS100USD',
+      'CME_MINI:MNQ1!': 'OANDA:NAS100USD',
+      'CME:MNQ': 'OANDA:NAS100USD'
+    };
+    return aliases[normalizeSymbol(symbol)] || symbol;
+  }
+
+  function directTradingViewSymbol(symbol) {
+    const aliases = {
+      'ES1!': 'CME_MINI:ES1!',
+      'NQ1!': 'CME_MINI:NQ1!',
+      'MES1!': 'CME_MINI:MES1!',
+      'MNQ1!': 'CME_MINI:MNQ1!'
+    };
+    return aliases[normalizeSymbol(symbol)] || symbol;
+  }
+
   function tradingViewChartUrl(symbol) {
-    return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}`;
+    return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(directTradingViewSymbol(symbol))}`;
   }
 
   function updateTradingViewLink(symbol) {
@@ -769,6 +898,7 @@
     if (!symbol) {
       updateTradingViewLink('');
       els.chartTitle.textContent = 'No symbol selected';
+      els.widgetStatus.hidden = false;
       els.widgetStatus.textContent = 'Add a symbol to load a chart';
       els.selectedLabel.textContent = 'No symbol selected';
       els.chart.textContent = '';
@@ -779,12 +909,16 @@
       return;
     }
 
+    const chartSymbol = embeddedChartSymbol(symbol);
+    const usingProxy = chartSymbol !== symbol;
     els.chartTitle.textContent = symbol;
     updateTradingViewLink(symbol);
-    els.widgetStatus.textContent = 'Updating chart…';
+    els.widgetStatus.hidden = true;
+    els.widgetStatus.textContent = usingProxy ? `Proxy chart ${chartSymbol}` : 'Updating chart…';
     els.chart.textContent = '';
 
     if (!window.TradingView || typeof window.TradingView.widget !== 'function') {
+      els.widgetStatus.hidden = false;
       els.widgetStatus.textContent = 'TradingView script unavailable';
       const fallback = document.createElement('div');
       fallback.className = 'empty-state';
@@ -801,7 +935,7 @@
 
     new window.TradingView.widget({
       autosize: true,
-      symbol,
+      symbol: chartSymbol,
       interval: 'D',
       timezone: state.chartTimezone,
       theme: 'dark',
@@ -815,7 +949,7 @@
     });
 
     state.chartStatusTimer = window.setTimeout(() => {
-      els.widgetStatus.textContent = 'Embed loaded · Open TV if blocked';
+      els.widgetStatus.textContent = usingProxy ? `Proxy chart · Open TV for ${symbol}` : 'Embed loaded · Open TV if blocked';
       state.chartStatusTimer = null;
     }, 650);
   }
@@ -913,6 +1047,11 @@
     }
   }
 
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') loadQuotes();
+    else scheduleQuoteRefresh();
+  });
+
   els.form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const resolved = await resolveSymbolInput(els.symbolInput.value);
@@ -945,6 +1084,7 @@
   if (els.createCategoryBtn) els.createCategoryBtn.addEventListener('click', () => createCategory(els.categoryNameInput.value));
   if (els.renameCategoryBtn) els.renameCategoryBtn.addEventListener('click', () => renameCategory(els.deleteCategorySelect.value, els.categoryNameInput.value));
   if (els.deleteCategoryBtn) els.deleteCategoryBtn.addEventListener('click', () => deleteCategory(els.deleteCategorySelect.value));
+  if (els.manageToggleBtn) els.manageToggleBtn.addEventListener('click', () => setManagementOpen(!state.managementOpen));
   els.exportBtn.addEventListener('click', exportJson);
   els.importFile.addEventListener('change', () => importJson(els.importFile.files[0]));
   els.resetBtn.addEventListener('click', async () => {
@@ -960,9 +1100,11 @@
 
   initSplitResize();
   initTimezoneSelect();
+  applyManagementVisibility();
 
   loadInitialState().then(() => {
     renderList();
+    scrollSelectedIntoView();
     loadQuotes();
     if (document.readyState === 'complete') loadChart(state.selected);
     else window.addEventListener('load', () => loadChart(state.selected));

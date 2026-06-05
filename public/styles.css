@@ -165,6 +165,8 @@ input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 4px var
   font-weight: 700;
 }
 .header-actions .file-btn { font-size: 0.78rem; cursor: pointer; }
+#userEmail, #storageStatus:not(.warning), #widgetStatus[hidden] { display: none !important; }
+.status-dot[hidden] { display: none !important; }
 .compact-btn {
   flex: 0 0 auto;
   padding: 7px 10px;
@@ -289,7 +291,17 @@ input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 4px var
   font-size: 0.84rem;
   white-space: nowrap;
 }
-.quote-last, .quote-change { overflow: hidden; text-align: right; text-overflow: ellipsis; }
+.quote-last, .quote-change { overflow: hidden; border-radius: 4px; text-align: right; text-overflow: ellipsis; transition: background-color .45s ease, color .2s ease; }
+.quote-last.flash-up, .quote-change.flash-up { animation: quoteFlashUp .9s ease-out; }
+.quote-last.flash-down, .quote-change.flash-down { animation: quoteFlashDown .9s ease-out; }
+@keyframes quoteFlashUp {
+  0% { background: rgba(8, 153, 129, 0.46); color: #eafff8; }
+  100% { background: transparent; }
+}
+@keyframes quoteFlashDown {
+  0% { background: rgba(242, 54, 69, 0.46); color: #fff1f2; }
+  100% { background: transparent; }
+}
 .quote-change.up { color: var(--green); }
 .quote-change.down { color: var(--red); }
 .watch-actions { gap: 4px; flex-shrink: 0; justify-content: flex-end; }
@@ -511,3 +523,38 @@ body { min-height: 0; }
   .shell, .sidebar, .chart-area { height: auto; min-height: 0; }
   .chart-card { height: 70vh; min-height: 360px; }
 }
+
+/* UX audit pass: calmer header, collapsed management, denser watchlist */
+.topbar { min-height: 44px; padding-top: 2px; }
+.topbar .eyebrow { color: #6f7c8f; font-size: 10px; letter-spacing: .1em; }
+#chartTitle { font-size: clamp(1.15rem, 1.55vw, 1.65rem); }
+.status-stack { gap: 6px; }
+.timezone-control select, .compact-btn { min-height: 28px; border-radius: 5px; padding: 5px 8px; font-size: 12px; }
+.tv-open-link { color: #c4cedd; }
+
+.watchlist-wrap { flex: 1 1 auto; }
+.watch-item { min-height: 36px; padding: 3px 10px; }
+.watch-item.active { border-color: #7d8da3; box-shadow: inset 3px 0 0 #2962ff; background: #101722; }
+.watch-label { gap: 4px; }
+.watch-symbol { flex: 0 1 auto; max-width: 100%; }
+.watch-tags { display: none !important; }
+.watch-meta { color: #657386; font-size: 10.5px; }
+.watch-quote { font-size: 12.5px; }
+.category-heading { min-height: 24px; padding-block: 3px; }
+
+.manage-heading-actions { display: flex; align-items: center; gap: 8px; }
+.manage-toggle { min-height: 24px; padding: 4px 8px; }
+.add-panel.collapsed { padding: 7px 12px; }
+.add-panel.collapsed .panel-heading { margin-bottom: 0; }
+.add-panel.collapsed .symbol-form,
+.add-panel.collapsed .symbol-suggestions,
+.add-panel.collapsed .symbol-edit-tools,
+.add-panel.collapsed .category-tools,
+.add-panel.collapsed .hint,
+.add-panel.collapsed #resetBtn { display: none !important; }
+.add-panel.collapsed h2 { color: #7f8b9c; }
+.symbol-form { grid-template-columns: minmax(104px, 1.15fr) minmax(86px, .9fr) minmax(72px, .75fr) auto; }
+.symbol-form .primary-btn, .mini-btn, .remove-selected-btn { white-space: nowrap; }
+.symbol-edit-tools { grid-template-columns: minmax(130px, .9fr) minmax(0, 1fr) auto auto; }
+.category-tools { grid-template-columns: minmax(110px, 1fr) minmax(110px, 1fr) auto auto auto; }
+.add-panel .hint { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

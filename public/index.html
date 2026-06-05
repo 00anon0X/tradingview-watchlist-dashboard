@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Self-hosted TradingView chart and watchlist dashboard">
+  <meta name="description" content="Self-hosted TradingView-style watchlist dashboard">
   <title>Trading Watchlist</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=ux-audit-public-20260604">
 </head>
 <body>
   <div class="shell">
@@ -15,7 +15,7 @@
         <div class="brand-main">
           <div class="logo" aria-hidden="true">TW</div>
           <div>
-            <p class="eyebrow">Self-hosted</p>
+            <p class="eyebrow">TradingView-style dashboard</p>
             <h1>Watchlist</h1>
           </div>
         </div>
@@ -52,28 +52,31 @@
       <section class="panel add-panel" aria-labelledby="add-symbol-title">
         <div class="panel-heading">
           <h2 id="add-symbol-title">Manage watchlist</h2>
-          <button id="resetBtn" type="button" class="danger-text">Reset</button>
+          <div class="manage-heading-actions">
+            <button id="manageToggleBtn" type="button" class="mini-btn manage-toggle" aria-expanded="false">Manage</button>
+            <button id="resetBtn" type="button" class="danger-text">Reset</button>
+          </div>
         </div>
         <form id="symbolForm" class="symbol-form" autocomplete="off">
           <input id="symbolInput" name="symbol" type="text" placeholder="Symbol e.g. SOLUSDT" required aria-label="Symbol">
           <input id="categoryInput" name="category" type="text" list="categoryOptions" placeholder="Category e.g. MAIN CRYPTO" aria-label="Category">
           <datalist id="categoryOptions"></datalist>
           <input id="tagsInput" name="tags" type="text" placeholder="Tags optional" aria-label="Tags">
-          <button type="submit" class="primary-btn">Add</button>
+          <button type="submit" class="primary-btn">Add symbol</button>
         </form>
         <div id="symbolSuggestions" class="symbol-suggestions" role="listbox" aria-label="Ticker matches" hidden></div>
         <div class="symbol-edit-tools">
           <span id="selectedSymbolBadge" class="edit-badge">Select ticker to edit tags</span>
           <input id="editTagsInput" type="text" placeholder="Tags for selected ticker" aria-label="Tags for selected ticker">
           <button id="saveTagsBtn" type="button" class="mini-btn">Save tags</button>
-          <button id="removeSelectedBtn" type="button" class="danger-text remove-selected-btn" disabled>Remove</button>
+          <button id="removeSelectedBtn" type="button" class="danger-text remove-selected-btn" disabled>Remove ticker</button>
         </div>
         <div class="category-tools">
           <select id="deleteCategorySelect" aria-label="Category to manage"><option value="">Manage category…</option></select>
           <input id="categoryNameInput" type="text" placeholder="New category name" aria-label="New category name">
-          <button id="createCategoryBtn" type="button" class="mini-btn">Add</button>
+          <button id="createCategoryBtn" type="button" class="mini-btn">Add category</button>
           <button id="renameCategoryBtn" type="button" class="mini-btn">Rename</button>
-          <button id="deleteCategoryBtn" type="button" class="danger-text">Delete</button>
+          <button id="deleteCategoryBtn" type="button" class="danger-text">Delete category</button>
         </div>
         <p class="hint">Select a ticker to edit tags. Add/rename/delete categories below. Drag a row onto a category header to move it there.</p>
       </section>
@@ -100,7 +103,7 @@
           <span id="userEmail" class="status-dot">Google auth</span>
           <span id="storageStatus" class="status-dot">Server sync</span>
           <span id="widgetStatus" class="status-dot secondary">Widget loading</span>
-          <a id="tvOpenLink" class="ghost-btn compact-btn tv-open-link" href="https://www.tradingview.com/chart/" target="_blank" rel="noopener" hidden>Open TV</a>
+          <a id="tvOpenLink" class="ghost-btn compact-btn tv-open-link" href="https://www.tradingview.com/chart/" target="_blank" rel="noopener" hidden>TradingView</a>
           <a class="ghost-btn compact-btn" href="/dashboard.html">Dashboard</a>
           <button id="logoutBtn" type="button" class="ghost-btn compact-btn">Logout</button>
         </div>
@@ -130,6 +133,6 @@
   </template>
 
   <script src="https://s3.tradingview.com/tv.js"></script>
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=ux-audit-public-20260604" defer></script>
 </body>
 </html>
